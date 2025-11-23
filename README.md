@@ -16,7 +16,7 @@ A **Clínica Vida+** enfrenta dificuldades com processos manuais de agendamento,
 O projeto foi dividido em 5 passos práticos:
 
 ### Passo 1: Gestão de Projeto (Scrum)
-Planejamento das tarefas utilizando um quadro Scrum no Trello, dividido em Backlog, Sprint Atual, Em Progresso e Concluído.
+Planejamento das tarefas utilizando um quadro Scrum no Trello, dividido em Backlog, SPRINT 1 — Estrutura e Cadastro, SPRINT 2 — Funcionalidades Avançadas e Testes, Sprint Atual, Em Progresso e Concluído.
 
 ### Passo 2: Sistema em Python
 Desenvolvimento de um protótipo funcional em Python com as seguintes funcionalidades:
