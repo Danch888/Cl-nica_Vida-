@@ -1,14 +1,9 @@
-import sys
-import io
 import os
 
 # ==============================================================================
 # CONFIGURAÇÕES INICIAIS
 # ==============================================================================
 
-# Força a saída padrão a usar UTF-8 (para corrigir acentos no Windows)
-# Reatribui sys.stdout para garantir que prints exibam acentuação corretamente
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Listas globais para armazenamento em memória
 # 'pacientes' guarda dicionários com dados de cada paciente
@@ -21,20 +16,20 @@ medicos = []
 # ==============================================================================
 
 def limpar_tela():
-    """Limpa o terminal dependendo do sistema operacional."""
+    # Limpa o terminal dependendo do sistema operacional.
     # Use 'cls' no Windows, 'clear' em Unix/Linux/Mac
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def voltar_ao_menu():
-    """Pausa a execução para o usuário ler a mensagem antes de voltar."""
+    # Pausa a execução para o usuário ler a mensagem antes de voltar.
     # Aguarda Enter e em seguida limpa a tela para voltar à interface principal
     input("\n[Pressione Enter para voltar ao menu principal...]")
     limpar_tela()
 
 def ler_texto(mensagem):
-    """Lê apenas letras e espaços. Rejeita números e vazios.
-    Retorna o texto formatado com Title Case ou None em caso de interrupção.
-    """
+    # Lê apenas letras e espaços. Rejeita números e vazios.
+    # Retorna o texto formatado com Title Case ou None em caso de interrupção.
+
     while True:
         try:
             texto = input(mensagem).strip()
@@ -53,10 +48,10 @@ def ler_texto(mensagem):
             return None
 
 def ler_inteiro(mensagem):
-    """Lê apenas números inteiros positivos.
-    Em caso de entrada inválida, repete a solicitação.
-    Retorna int ou None se interrompido.
-    """
+    # Lê apenas números inteiros positivos.
+    # Em caso de entrada inválida, repete a solicitação.
+    # Retorna int ou None se interrompido.
+
     while True:
         try:
             entrada = input(mensagem).strip()
@@ -75,30 +70,36 @@ def ler_inteiro(mensagem):
             print("\nOperação interrompida.")
             return None
 
-def ler_generico_numerico(mensagem):
-    """Lê strings que devem conter apenas números ou símbolos permitidos (Telefone/RG).
-    Não valida formato específico, apenas garante que não seja vazio e tenha tamanho mínimo.
-    """
+def ler_telefone(mensagem):
+    # Lê e valida número de telefone: permite apenas dígitos (com ou sem espaços/hífens/parênteses).
+    # Remove caracteres de formatação e exige entre 8 e 15 dígitos.
+    # Retorna a versão apenas com dígitos, ou None se interrompido.
     while True:
         try:
             entrada = input(mensagem).strip()
             if not entrada:
                 print("Erro: O campo não pode ficar vazio.")
                 continue
-            if len(entrada) < 3:
-                print("Erro: Entrada muito curta.")
+            # Extrai apenas os dígitos, removendo espaços, hífens, parênteses e sinais
+            digits = ''.join(ch for ch in entrada if ch.isdigit())
+            if len(digits) < 8:
+                print("Erro: Número de telefone muito curto. Informe ao menos 8 dígitos.")
                 continue
-            return entrada
+            if len(digits) > 15:
+                print("Erro: Número de telefone muito longo. Informe no máximo 15 dígitos.")
+                continue
+            return digits
         except (KeyboardInterrupt, EOFError):
             print("\nOperação interrompida.")
             return None
+
 
 # ==============================================================================
 # FUNÇÕES DO SISTEMA (LÓGICA DE NEGÓCIO)
 # ==============================================================================
 
 def cadastrar_paciente():
-    """Coleta dados do paciente, valida e adiciona o registro à lista 'pacientes'."""
+    # Coleta dados do paciente, valida e adiciona o registro à lista 'pacientes'.
     print("\n--- CADASTRO DE PACIENTE ---")
     
     # Nome (apenas letras e espaços)
@@ -116,9 +117,10 @@ def cadastrar_paciente():
             break
         print("Opção inválida. Digite M ou F.")
 
-    # Telefone (ou outro campo numérico genérico)
-    telefone = ler_generico_numerico("Telefone: ")
-    if not telefone: return
+    # Telefone: aceita apenas números (serão mantidos somente os dígitos)
+    telefone = ler_telefone("Telefone: ")
+    if not telefone:
+        return
 
     # Cria dicionário do paciente e adiciona à lista global
     novo_paciente = {
@@ -131,7 +133,7 @@ def cadastrar_paciente():
     print(f"\n✅ Paciente {nome} cadastrado com sucesso!")
 
 def estatisticas():
-    """Calcula e exibe estatísticas básicas sobre os pacientes cadastrados."""
+    # Calcula e exibe estatísticas básicas sobre os pacientes cadastrados.
     print("\n--- ESTATÍSTICAS DA CLÍNICA ---")
     total = len(pacientes)
     print(f"Total de pacientes cadastrados: {total}")
@@ -154,8 +156,13 @@ def estatisticas():
     print(f"Paciente mais velho: {mais_velho['nome']} ({mais_velho['idade']} anos)")
 
 def buscar_paciente():
-    """Busca pacientes por termo no nome (busca parcial, case-insensitive)."""
+    # Busca pacientes na lista pelo nome, mas se a lista estiver vazia, avisa o usuário.
     print("\n--- BUSCAR PACIENTE ---")
+    if not pacientes:
+        print("❌ Nenhum paciente cadastrado para buscar.")
+        return
+    
+    # Busca pacientes por termo no nome (busca parcial, case-insensitive).
     termo = input("Digite o nome para buscar: ").strip().lower()
     
     # Lista todos pacientes cujo nome contém o termo (ignora maiúsculas/minúsculas)
@@ -165,26 +172,26 @@ def buscar_paciente():
         print(f"\nEncontrados {len(encontrados)} paciente(s):")
         for pac in encontrados:
             # Exibe resumo dos dados encontrados
-            print(f"- {pac['nome']} | Idade: {pac['idade']} | Tel: {pac['telefone']}")
+            print(f"- {pac['nome']} | {pac['idade']} anos | sexo: {pac['sexo']} | Tel: {pac['telefone']}")
     else:
         print("❌ Nenhum paciente encontrado com esse nome.")
 
 def listar_tudo():
-    """Imprime todos os pacientes cadastrados de forma organizada."""
+    # Imprime todos os pacientes cadastrados de forma organizada.
     print("\n--- LISTA GERAL DE PACIENTES ---")
     if not pacientes:
-        print("Nenhum paciente cadastrado.")
+        print("❌ Nenhum paciente cadastrado.")
     else:
         # Enumera e mostra cada registro com formatação simples
         for i, pac in enumerate(pacientes, 1):
-            print(f"{i}. {pac['nome'].ljust(20)} | {pac['idade']} anos | Tel: {pac['telefone']}")
+            print(f"{i}. {pac['nome']} | {pac['idade']} anos | sexo: {pac['sexo']} | Tel: {pac['telefone']}")
 
 # ==============================================================================
 # MENU PRINCIPAL
 # ==============================================================================
 
 def executar_sistema():
-    """Loop principal que exibe o menu e chama as funções conforme a opção escolhida."""
+    # Loop principal que exibe o menu e chama as funções conforme a opção escolhida.
     limpar_tela()
     while True:
         print("\n=== SISTEMA CLÍNICA VIDA+ ===")
