@@ -7,9 +7,7 @@ import os
 
 # Listas globais para armazenamento em memória
 # 'pacientes' guarda dicionários com dados de cada paciente
-# 'medicos' criado para futuro uso (ainda não utilizado neste código)
 pacientes = []
-medicos = []
 
 # ==============================================================================
 # FUNÇÕES AJUDANTES (VALIDAÇÃO E INTERFACE)
