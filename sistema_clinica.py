@@ -1,6 +1,8 @@
-from typing import List, Dict
-import sys
-import io
+# O sistema deverá permitir:
+# • Cadastro de pacientes, médicos e exames;
+# • Agendamento de consultas e exames, com controle de horários disponíveis;
+# • Registro de atendimentos, com histórico de evolução por paciente;
+# • Geração de relatórios mensais para a administração;
 
 # ==============================================================================
 # PROJETO INTEGRADO - SISTEMA CLÍNICA VIDA+
@@ -55,183 +57,195 @@ import io
     # ==========================================================================
     # 12. Encerrar o loop principal e finalizar o programa com uma mensagem de despedida.
 
+import sys
+import io
+import os
 
-"""
-Sistema simples para cadastro e consulta de pacientes.
-Segui os passos comentados no arquivo original:
-1) Lista 'pacientes' em memória.
-2) Loop principal com menu (Cadastrar, Estatísticas, Buscar, Listar, Sair).
-3) Validações básicas de entrada com try/except.
-Todos os trechos do código estão comentados de forma direta para facilitar entendimento.
-"""
+# ==============================================================================
+# CONFIGURAÇÕES INICIAIS
+# ==============================================================================
 
-# Força a saída padrão a usar UTF-8
+# Força a saída padrão a usar UTF-8 (para corrigir acentos no Windows)
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# ---------- Estrutura de armazenamento ----------
-# Cada paciente será representado por um dicionário com chaves: nome, idade, sexo, telefone
-pacientes: List[Dict[str, object]] = []
+# Listas globais para armazenamento em memória
+pacientes = []
+medicos = []
 
+# ==============================================================================
+# FUNÇÕES AJUDANTES (VALIDAÇÃO E INTERFACE)
+# ==============================================================================
 
-# ---------- Funções auxiliares ----------
+def limpar_tela():
+    """Limpa o terminal dependendo do sistema operacional."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def voltar_ao_menu():
+    """Pausa a execução para o usuário ler a mensagem antes de voltar."""
+    input("\n[Pressione Enter para voltar ao menu principal...]")
+    limpar_tela()
+
+def ler_texto(mensagem):
+    """Lê apenas letras e espaços. Rejeita números e vazios."""
+    while True:
+        try:
+            texto = input(mensagem).strip()
+            if not texto:
+                print("Erro: O campo não pode ficar vazio.")
+                continue
+            # Verifica se, tirando os espaços, sobram apenas letras
+            if not texto.replace(" ", "").isalpha():
+                print("Erro: Este campo aceita apenas letras. Tente novamente.")
+                continue
+            return texto.title() # Retorna com a primeira letra maiúscula (ex: João)
+        except (KeyboardInterrupt, EOFError):
+            print("\nOperação interrompida.")
+            return None
+
+def ler_inteiro(mensagem):
+    """Lê apenas números inteiros positivos."""
+    while True:
+        try:
+            entrada = input(mensagem).strip()
+            if not entrada:
+                print("Erro: O campo não pode ficar vazio.")
+                continue
+            numero = int(entrada)
+            if numero <= 0:
+                print("Erro: O número deve ser positivo.")
+                continue
+            return numero
+        except ValueError:
+            print("Erro: Entrada inválida. Digite apenas números inteiros.")
+        except (KeyboardInterrupt, EOFError):
+            print("\nOperação interrompida.")
+            return None
+
+def ler_generico_numerico(mensagem):
+    """Lê strings que devem conter apenas números ou símbolos permitidos (Telefone/RG)."""
+    while True:
+        try:
+            entrada = input(mensagem).strip()
+            if not entrada:
+                print("Erro: O campo não pode ficar vazio.")
+                continue
+            if len(entrada) < 3:
+                print("Erro: Entrada muito curta.")
+                continue
+            return entrada
+        except (KeyboardInterrupt, EOFError):
+            print("\nOperação interrompida.")
+            return None
+
+# ==============================================================================
+# FUNÇÕES DO SISTEMA (LÓGICA DE NEGÓCIO)
+# ==============================================================================
 
 def cadastrar_paciente():
-  """
-  Solicita dados do paciente, valida entradas e adiciona o dicionário resultante
-  à lista 'pacientes'. Trata erros de entrada do usuário (EOF, KeyboardInterrupt,
-  valores inválidos) e informa quando o cadastro é cancelado.
-  """
-  try:
-    # Nome
-    nome = input("Nome: ").strip()
-    if not nome:
-      print("Nome não pode ficar vazio. Cadastro cancelado.")
-      return
+    print("\n--- CADASTRO DE PACIENTE ---")
+    
+    nome = ler_texto("Nome do Paciente: ")
+    if not nome: return
 
-    # Idade: loop até obter um inteiro positivo ou cancelar
-    try:
-      idade_str = input("Idade: ").strip()
-    except (EOFError, KeyboardInterrupt):
-      print("\nEntrada cancelada pelo usuário. Cadastro abortado.")
-      return
+    idade = ler_inteiro("Idade: ")
+    if not idade: return
 
-    try:
-      idade = int(idade_str)
-      if idade <= 0:
-        print("Idade deve ser um número inteiro positivo. Cadastro cancelado.")
-        return
-    except ValueError:
-      print("Entrada inválida para idade. Use um número inteiro. Cadastro cancelado.")
-      return
+    while True:
+        sexo = input("Sexo (M/F): ").strip().upper()
+        if sexo in ["M", "F"]:
+            break
+        print("Opção inválida. Digite M ou F.")
 
-    # Sexo: aceitar 'M' ou 'F' (case-insensitive)
-    try:
-      sexo = input("Sexo (M/F): ").strip().upper()
-    except (EOFError, KeyboardInterrupt):
-      print("\nEntrada cancelada pelo usuário. Cadastro abortado.")
-      return
+    telefone = ler_generico_numerico("Telefone: ")
+    if not telefone: return
 
-    if sexo not in {"M", "F"}:
-      print("Sexo inválido. Use 'M' para masculino ou 'F' para feminino. Cadastro cancelado.")
-      return
-
-    # Telefone: apenas valida presença; pode-se estender para validar formato
-    try:
-      telefone = input("Telefone: ").strip()
-    except (EOFError, KeyboardInterrupt):
-      print("\nEntrada cancelada pelo usuário. Cadastro abortado.")
-      return
-
-    if not telefone:
-      print("Telefone não pode ficar vazio. Cadastro cancelado.")
-      return
-
-    # Criar e adicionar o paciente
-    paciente = {"nome": nome, "idade": idade, "sexo": sexo, "telefone": telefone}
-    pacientes.append(paciente)
-    print(f"Paciente '{nome}' cadastrado com sucesso.")
-
-  except Exception as e:
-    # Tratamento genérico para evitar que erros inesperados quebrem o programa
-    print(f"Ocorreu um erro inesperado durante o cadastro: {e}")
-    print("Cadastro cancelado.")
-
+    novo_paciente = {
+        "nome": nome,
+        "idade": idade,
+        "sexo": sexo,
+        "telefone": telefone
+    }
+    pacientes.append(novo_paciente)
+    print(f"\n✅ Paciente {nome} cadastrado com sucesso!")
 
 def estatisticas():
-  """
-  Exibe estatísticas básicas: total de pacientes, média de idade, paciente mais novo e mais velho.
-  """
-  total = len(pacientes)
-  print(f"Total de pacientes cadastrados: {total}")
+    print("\n--- ESTATÍSTICAS DA CLÍNICA ---")
+    total = len(pacientes)
+    print(f"Total de pacientes cadastrados: {total}")
 
-  if total == 0:
-    print("Não há pacientes para calcular estatísticas.")
-    return
+    if total == 0:
+        print("⚠️ Não há dados suficientes para calcular médias.")
+        return
 
-  # Calcular média de idade
-  soma_idades = sum(p["idade"] for p in pacientes)
-  media = soma_idades / total
-  print(f"Média de idade: {media:.2f} anos")
+    # Média de idade (Variável alterada de p -> pac)
+    soma_idades = sum(pac["idade"] for pac in pacientes)
+    media = soma_idades / total
+    print(f"Média de idade dos pacientes: {media:.1f} anos")
 
-  # Encontrar paciente mais novo e mais velho
-  mais_novo = min(pacientes, key=lambda p: p["idade"])
-  mais_velho = max(pacientes, key=lambda p: p["idade"])
-  print(f"Paciente mais novo: {mais_novo['nome']} ({mais_novo['idade']} anos)")
-  print(f"Paciente mais velho: {mais_velho['nome']} ({mais_velho['idade']} anos)")
-
+    # Mais novo e mais velho (Variável alterada de p -> pac)
+    mais_novo = min(pacientes, key=lambda pac: pac["idade"])
+    mais_velho = max(pacientes, key=lambda pac: pac["idade"])
+    
+    print(f"Paciente mais novo: {mais_novo['nome']} ({mais_novo['idade']} anos)")
+    print(f"Paciente mais velho: {mais_velho['nome']} ({mais_velho['idade']} anos)")
 
 def buscar_paciente():
-  """
-  Busca paciente pelo nome (busca parcial e case-insensitive) e exibe resultados encontrados.
-  """
-  termo = input("Digite o nome (ou parte do nome) para buscar: ").strip().casefold()
-  if not termo:
-    print("Termo de busca vazio. Operação cancelada.")
-    return
+    print("\n--- BUSCAR PACIENTE ---")
+    termo = input("Digite o nome para buscar: ").strip().lower()
+    
+    # Busca com variável alterada de p -> pac
+    encontrados = [pac for pac in pacientes if termo in pac["nome"].lower()]
+    
+    if encontrados:
+        print(f"\nEncontrados {len(encontrados)} paciente(s):")
+        for pac in encontrados:
+            print(f"- {pac['nome']} | Idade: {pac['idade']} | Tel: {pac['telefone']}")
+    else:
+        print("❌ Nenhum paciente encontrado com esse nome.")
 
-  encontrados = [p for p in pacientes if termo in p["nome"].casefold()]
-  if not encontrados:
-    print("Nenhum paciente encontrado com esse termo.")
-    return
+def listar_tudo():
+    print("\n--- LISTA GERAL DE PACIENTES ---")
+    if not pacientes:
+        print("Nenhum paciente cadastrado.")
+    else:
+        # Loop com variável alterada de p -> pac
+        for i, pac in enumerate(pacientes, 1):
+            print(f"{i}. {pac['nome'].ljust(20)} | {pac['idade']} anos | Tel: {pac['telefone']}")
 
-  # Exibir todos os pacientes encontrados
-  print(f"{len(encontrados)} paciente(s) encontrado(s):")
-  for idx, p in enumerate(encontrados, start=1):
-    print(f"{idx}. Nome: {p['nome']}, Idade: {p['idade']}, Telefone: {p['telefone']}")
+# ==============================================================================
+# MENU PRINCIPAL
+# ==============================================================================
 
-
-def listar_pacientes():
-  """
-  Lista todos os pacientes cadastrados de forma organizada.
-  """
-  if not pacientes:
-    print("Nenhum paciente cadastrado.")
-    return
-
-  print("Lista de pacientes:")
-  for i, p in enumerate(pacientes, start=1):
-    print(f"{i}. Nome: {p['nome']} | Idade: {p['idade']} | Telefone: {p['telefone']}")
-
-
-# ---------- Loop principal com menu ----------
 def executar_sistema():
-  """
-  Loop principal que mostra o menu, lê a opção do usuário com tratamento de erros
-  e chama as funções correspondentes até o usuário escolher sair.
-  """
-  while True:
-    print("\n--- SISTEMA CLÍNICA VIDA+ ---")
-    print("1. Cadastrar paciente")
-    print("2. Estatísticas")
-    print("3. Buscar paciente")
-    print("4. Listar todos os pacientes")
-    print("5. Sair")
+    limpar_tela()
+    while True:
+        print("\n=== SISTEMA CLÍNICA VIDA+ ===")
+        print("1. Cadastrar Paciente")
+        print("2. Ver Estatísticas")
+        print("3. Buscar Paciente")
+        print("4. Listar Todos os Pacientes")
+        print("5. Sair")
+        
+        opcao = input("Escolha uma opção: ").strip()
 
-    # Ler opção com tratamento para entradas inválidas
-    opcao = input("Escolha uma opção (1-5): ").strip()
-    if not opcao:
-      print("Opção vazia. Tente novamente.")
-      continue
+        if opcao == "1":
+            cadastrar_paciente()
+            voltar_ao_menu()
+        elif opcao == "2":
+            estatisticas()
+            voltar_ao_menu()
+        elif opcao == "3":
+            buscar_paciente()
+            voltar_ao_menu()
+        elif opcao == "4":
+            listar_tudo()
+            voltar_ao_menu()
+        elif opcao == "5":
+            print("\nSaindo do sistema... Até logo!")
+            break
+        else:
+            print("\n❌ Opção inválida! Tente novamente.")
+            voltar_ao_menu()
 
-    # Validar que a opção é um número entre 1 e 5
-    if opcao not in {"1", "2", "3", "4", "5"}:
-      print("Opção inválida. Informe um número entre 1 e 5.")
-      continue
-
-    # Mapear e executar as ações
-    if opcao == "1":
-      cadastrar_paciente()
-    elif opcao == "2":
-      estatisticas()
-    elif opcao == "3":
-      buscar_paciente()
-    elif opcao == "4":
-      listar_pacientes()
-    elif opcao == "5":
-      print("Encerrando o sistema. Obrigado e até logo!")
-      break
-
-
-# Permite executar o sistema quando o arquivo for executado diretamente
 if __name__ == "__main__":
-  executar_sistema()
+    executar_sistema()
